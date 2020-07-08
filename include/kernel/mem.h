@@ -5,7 +5,7 @@
 #define MEM_H
 
 #define PAGE_SIZE 4096
-
+#define KERNEL_HEAP_SIZE 1048576 // 1MB
 typedef struct {
 	uint8_t allocated: 1;			// This page is allocated to something
 	uint8_t kernel_page: 1;			// This page is a part of the kernel
@@ -23,4 +23,8 @@ void mem_init(atag_t * atags);
 
 void * alloc_page(void);
 void free_page(void * ptr);
+
+void * kmalloc(uint32_t bytes);
+void kfree(void * ptr);
+
 #endif
