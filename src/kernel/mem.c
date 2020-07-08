@@ -44,3 +44,36 @@ void mem_init(atag_t * atags) {
         append_page_list(&free_pages, &page_array[i]);
     }
 }
+
+void * alloc_page(void) {
+    page_t * page;
+    void * page_memory; 
+
+    if (size_page_list(&free_pages) == 0) {
+        // Out of free pages
+        return 0;
+    }
+
+    page = pop_page_list(&free_pages);
+    page->flags.kernel_page = 1;
+    page->flags.allocated = 1;
+
+    // Index * page size = physical page memory address
+    page_memory = (void *)((page - page_array) * PAGE_SIZE);
+
+    bzero(page_memory, PAGE_SIZE);
+
+    return page_memory;
+}
+
+void free_page(void * ptr) {
+    page_t * page;
+
+    // Physical address / PAGE_SIZE + start of page_array = index 
+    page = (page_t *)(((uint32_t)ptr / PAGE_SIZE) + page_array);
+
+    page->flags.allocated = 0;
+    bzero(ptr, PAGE_SIZE);
+
+    append_page_list(&free_pages, page);
+}
