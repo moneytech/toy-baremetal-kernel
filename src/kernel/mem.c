@@ -49,9 +49,9 @@ void mem_init(atag_t * atags) {
     }
 
     for(; i < kernel_pages + (KERNEL_HEAP_SIZE / PAGE_SIZE); i++){
-        all_pages_array[i].vaddr_mapped = i * PAGE_SIZE; 
-        all_pages_array[i].flags.allocated = 1;
-        all_pages_array[i].flags.kernel_heap_page = 1;
+        page_array[i].vaddr_mapped = i * PAGE_SIZE; 
+        page_array[i].flags.allocated = 1;
+        page_array[i].flags.kernel_heap_page = 1;
     }
 
     // Free page flags 
@@ -61,7 +61,7 @@ void mem_init(atag_t * atags) {
     }
 
     // Initialize heap at end of page array
-    heap_init((uint32_t)&__end + page_array_size)
+    heap_init((uint32_t)&__end + page_array_size);
 }
 
 void * alloc_page(void) {
@@ -97,9 +97,41 @@ void free_page(void * ptr) {
     append_page_list(&free_pages, page);
 }
 
-// void * kmalloc(uint32_t bytes) {
+void * kmalloc(uint32_t bytes) {
+    heap_segment_t * curr, * best = NULL;
+    int diff, min_diff = INT32_MAX; 
 
-// }
+    bytes += sizeof(heap_segment_t);
+    // Must be 16 byte aligned
+    bytes += bytes % 16 ? 16 - (bytes % 16) : 0;
+
+    // iterate over heap segments and find unallocated one
+    for (curr = heap_segment_list_head; curr != NULL; curr = curr->next) {
+        diff = curr->segment_size - bytes;
+        if (diff < min_diff && diff >= 0) {
+            min_diff = diff;
+            best = curr;
+        }
+    }
+
+    if (best == NULL) {
+        return NULL;
+    }
+
+    // if best has enough space for 2 more headers, split into 2    
+    if (min_diff >= (int)(sizeof(heap_segment_t) * 2)) {
+        bzero(((void*)(best)) + bytes, sizeof(heap_segment_t));
+        curr = best->next;
+        best->next = ((void*)(best)) + bytes;
+        best->next->next = curr;
+        best->next->prev = best;
+        best->next->segment_size = best->segment_size - bytes;
+        best->segment_size = bytes;
+    }
+
+    // Offset by 1 heap segment header
+    return best + 1;
+}
 
 // void free(void * ptr) {
 
