@@ -108,7 +108,7 @@ void * kmalloc(uint32_t bytes) {
     // iterate over heap segments and find unallocated one
     for (curr = heap_segment_list_head; curr != NULL; curr = curr->next) {
         diff = curr->segment_size - bytes;
-        if (diff < min_diff && diff >= 0) {
+        if (diff < min_diff && diff >= 0 && !curr->is_allocated) {
             min_diff = diff;
             best = curr;
         }
@@ -133,9 +133,21 @@ void * kmalloc(uint32_t bytes) {
     return best + 1;
 }
 
-// void free(void * ptr) {
+void kfree(void * ptr) {
+    heap_segment_t * heap_segment = (uint32_t)ptr - sizeof(heap_segment_t);
+    heap_segment->is_allocated = 0;
 
-// }
+    // Combine adjacent unallocated segments
+    while(heap_segment->next != NULL && !heap_segment->next->is_allocated) {
+        heap_segment->segment_size += heap_segment->next->segment_size;
+        heap_segment->next = heap_segment->next->next;
+    }
+    
+    while(heap_segment->prev != NULL && !heap_segment->prev->is_allocated) {
+        heap_segment->segment_size += heap_segment->prev->segment_size;
+        heap_segment->prev = heap_segment->prev->prev;
+    }
+}
 
 void heap_init(uint32_t heap_start) {
     heap_segment_list_head = (heap_segment_t *)heap_start;
