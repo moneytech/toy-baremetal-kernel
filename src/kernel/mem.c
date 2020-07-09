@@ -134,7 +134,7 @@ void * kmalloc(uint32_t bytes) {
 }
 
 void kfree(void * ptr) {
-    heap_segment_t * heap_segment = (uint32_t)ptr - sizeof(heap_segment_t);
+    heap_segment_t * heap_segment = (heap_segment_t *)((uint32_t)ptr) - sizeof(heap_segment_t);
     heap_segment->is_allocated = 0;
 
     // Combine adjacent unallocated segments
