@@ -1,6 +1,8 @@
 # Don't use normal gcc, use the arm cross compiler
 CC = ./gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-gcc
 
+OBJCOPY = ./gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-objcopy
+
 # Set any constants based on the raspberry pi model.  Version 1 has some differences to 2 and 3
 ifeq ($(RASPI_MODEL),1)
 	CPU = arm1176jzf-s
@@ -26,12 +28,13 @@ OBJECTS += $(patsubst $(COMMON_SRC)/%.c, $(OBJ_DIR)/%.o, $(COMMONSOURCES))
 OBJECTS += $(patsubst $(KER_SRC)/%.S, $(OBJ_DIR)/%.o, $(ASMSOURCES))
 HEADERS = $(wildcard $(KER_HEAD)/*.h)
 
-IMG_NAME=kernel.img
+IMG_NAME=kernel
 
 
 build: $(OBJECTS) $(HEADERS)
 	echo $(OBJECTS)
-	$(CC) -T linker.ld -o $(IMG_NAME) $(LFLAGS) $(OBJECTS)
+	$(CC) -T linker.ld -o $(IMG_NAME).elf $(LFLAGS) $(OBJECTS)
+	$(OBJCOPY) $(IMG_NAME).elf -O binary $(IMG_NAME).img
 
 $(OBJ_DIR)/%.o: $(KER_SRC)/%.c
 	mkdir -p $(@D)
@@ -45,9 +48,10 @@ $(OBJ_DIR)/%.o: $(COMMON_SRC)/%.c
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) -I$(KER_SRC) -I$(KER_HEAD) -c $< -o $@ $(CSRCFLAGS)
 
+
 clean:
 	rm -rf $(OBJ_DIR)
-	rm $(IMG_NAME)
+	rm $(IMG_NAME).%
 
 run: build
 	qemu-system-arm -m 256 -M raspi2 -serial stdio -kernel kernel.img
