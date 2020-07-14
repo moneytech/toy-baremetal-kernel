@@ -1,4 +1,4 @@
-# Toy Rasberry Pi 4 Operating System
+# Toy Rasberry Pi 4 Kernel
 
 
 ## Introduction
